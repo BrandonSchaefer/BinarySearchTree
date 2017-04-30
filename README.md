@@ -1,4 +1,4 @@
-Create a simple queue class using a circular array
+Create a simple binary search tree class
 
 Dependices for testing (ubuntu/debian):
 
