@@ -40,12 +40,11 @@ struct Node
     Node* parent{nullptr};
 };
 
-template <typename T>
+template <typename T, typename Alloc = std::allocator<Node<T>>>
 class bst
 {
 public:
-    bst() = default;
-
+    explicit bst(std::allocator<Node<T>> const& a = Alloc());
     ~bst();
 
     bool empty() const;
@@ -62,7 +61,7 @@ public:
     void print_post_order() const;
 
 private:
-    void delete_all_node(Node<T>* current);
+    void delete_all_nodes(Node<T>* current);
 
     void swap_subtree(Node<T>* from, Node<T>* to);
 
@@ -81,37 +80,43 @@ private:
     Node<T>* root{nullptr};
 };
 
-template <typename T>
-bst<T>::~bst()
+template <typename T, typename Alloc>
+bst<T, Alloc>::bst(std::allocator<Node<T>> const& a) :
+    node_allocator(a)
 {
-    delete_all_node(root);
 }
 
-template <typename T>
-void bst<T>::delete_all_node(Node<T>* current)
+template <typename T, typename Alloc>
+bst<T, Alloc>::~bst()
+{
+    delete_all_nodes(root);
+}
+
+template <typename T, typename Alloc>
+void bst<T, Alloc>::delete_all_nodes(Node<T>* current)
 {
     if (current)
     {
-        delete_all_node(current->left);
-        delete_all_node(current->right);
+        delete_all_nodes(current->left);
+        delete_all_nodes(current->right);
         node_allocator.deallocate(current, 1);
     }
 }
 
-template <typename T>
-bool bst<T>::empty() const
+template <typename T, typename Alloc>
+bool bst<T, Alloc>::empty() const
 {
     return size() == 0;
 }
 
-template <typename T>
-size_t bst<T>::size() const
+template <typename T, typename Alloc>
+size_t bst<T, Alloc>::size() const
 {
     return recursive_size(root);
 }
 
-template <typename T>
-size_t bst<T>::recursive_size(Node<T>* current) const
+template <typename T, typename Alloc>
+size_t bst<T, Alloc>::recursive_size(Node<T>* current) const
 {
     if (current == nullptr)
     {
@@ -121,14 +126,14 @@ size_t bst<T>::recursive_size(Node<T>* current) const
     return 1 + recursive_size(current->left) + recursive_size(current->right);
 }
 
-template <typename T>
-Node<T>* bst<T>::find(T const& elem) const
+template <typename T, typename Alloc>
+Node<T>* bst<T, Alloc>::find(T const& elem) const
 {
     return recursive_find(root, elem);
 }
 
-template <typename T>
-Node<T>* bst<T>::recursive_find(Node<T>* current, T const& elem) const
+template <typename T, typename Alloc>
+Node<T>* bst<T, Alloc>::recursive_find(Node<T>* current, T const& elem) const
 {
     if (current == nullptr)
     {
@@ -157,24 +162,21 @@ Node<T>* bst<T>::recursive_find(Node<T>* current, T const& elem) const
     return recursive_find(current->right, elem);
 }
 
-template <typename T>
-void bst<T>::create_node(Node<T>** node, T const& elem)
+template <typename T, typename Alloc>
+void bst<T, Alloc>::create_node(Node<T>** node, T const& elem)
 {
     *node = node_allocator.allocate(1);
     node_allocator.construct(*node);
 
-    (*node)->elem   = elem;
+    (*node)->elem = elem;
 }
 
-template <typename T>
-void bst<T>::insert(T const& elem)
+template <typename T, typename Alloc>
+void bst<T, Alloc>::insert(T const& elem)
 {
     if (root == nullptr)
     {
-        root = node_allocator.allocate(1);
-        node_allocator.construct(root);
-
-        root->elem = elem;
+        create_node(&root, elem);
     }
     else
     {
@@ -197,8 +199,8 @@ void bst<T>::insert(T const& elem)
     }
 }
 
-template <typename T>
-void bst<T>::swap_subtree(Node<T>* from, Node<T>* to)
+template <typename T, typename Alloc>
+void bst<T, Alloc>::swap_subtree(Node<T>* from, Node<T>* to)
 {
     auto parent = from->parent;
 
@@ -235,8 +237,8 @@ void bst<T>::swap_subtree(Node<T>* from, Node<T>* to)
     }
 }
 
-template <typename T>
-void bst<T>::remove(T const& elem)
+template <typename T, typename Alloc>
+void bst<T, Alloc>::remove(T const& elem)
 {
     auto node_to_delete = find(elem);
 
@@ -273,8 +275,8 @@ void bst<T>::remove(T const& elem)
     }
 }
 
-template <typename T>
-Node<T>* bst<T>::find_lowest_leaf(Node<T>* current) const
+template <typename T, typename Alloc>
+Node<T>* bst<T, Alloc>::find_lowest_leaf(Node<T>* current) const
 {
     if (current->left != nullptr)
     {
@@ -290,29 +292,15 @@ Node<T>* bst<T>::find_lowest_leaf(Node<T>* current) const
     }
 }
 
-template <typename T>
-void bst<T>::print_in_order() const
+template <typename T, typename Alloc>
+void bst<T, Alloc>::print_in_order() const
 {
     recursive_print_in_order(root);
     std::cout << '\n';
 }
 
-template <typename T>
-void bst<T>::print_pre_order() const
-{
-    recursive_print_pre_order(root);
-    std::cout << '\n';
-}
-
-template <typename T>
-void bst<T>::print_post_order() const
-{
-    recursive_print_post_order(root);
-    std::cout << '\n';
-}
-
-template <typename T>
-void bst<T>::recursive_print_in_order(Node<T>* current) const
+template <typename T, typename Alloc>
+void bst<T, Alloc>::recursive_print_in_order(Node<T>* current) const
 {
     if (current)
     {
@@ -322,8 +310,15 @@ void bst<T>::recursive_print_in_order(Node<T>* current) const
     }
 }
 
-template <typename T>
-void bst<T>::recursive_print_pre_order(Node<T>* current) const
+template <typename T, typename Alloc>
+void bst<T, Alloc>::print_pre_order() const
+{
+    recursive_print_pre_order(root);
+    std::cout << '\n';
+}
+
+template <typename T, typename Alloc>
+void bst<T, Alloc>::recursive_print_pre_order(Node<T>* current) const
 {
     if (current)
     {
@@ -333,8 +328,15 @@ void bst<T>::recursive_print_pre_order(Node<T>* current) const
     }
 }
 
-template <typename T>
-void bst<T>::recursive_print_post_order(Node<T>* current) const
+template <typename T, typename Alloc>
+void bst<T, Alloc>::print_post_order() const
+{
+    recursive_print_post_order(root);
+    std::cout << '\n';
+}
+
+template <typename T, typename Alloc>
+void bst<T, Alloc>::recursive_print_post_order(Node<T>* current) const
 {
     if (current)
     {
